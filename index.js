@@ -1,41 +1,79 @@
 import './style';
-import { createStore } from 'redux';
-import { Provider, connect } from 'preact-redux';
+import { createStore, compose } from 'redux';
+import { Provider } from 'preact-redux';
 import { h } from 'preact';
+import persistState from 'redux-localstorage';
 
-const ACTIONS = {
-	ADD_DOC(state, { id, title }) {
-		return Object.assign({}, state, {
-			docs: docs.concat({ id, title }),
+import DocList from './DocList';
+import DocView from './DocView';
+
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+
+const reducers = {
+	ADD_DOC({ docs, docIds, ...state }, { id, title }) {
+		return {
+			...state,
+			docs: { ...docs, [id]: { title, entryIds: [] } },
+			docIds: docIds.concat([id]),
 			curDoc: id
-		});
+		};
+	},
+
+	OPEN_DOC(state, { id }) {
+		return { ...state, curDoc: id };
+	},
+
+	ADD_ENTRY({ docs, entries, ...state }, { docId, id }) {
+		return {
+			...state,
+			docs: {
+				...docs,
+				[docId]: {
+					...docs[docId],
+					entryIds: docs[docId].entryIds.concat([ id ])
+				}
+			},
+			entries: {
+				...entries,
+				[id]: { input: '' }
+			}
+		};
+	},
+
+	DELETE_ENTRY({ docs, entries, ...state }, { docId, id }) {
+		const { [id]: entry, ...otherEntries } = entries;
+		return {
+			...state,
+			docs: {
+				...docs,
+				[docId]: {
+					...docs[docId],
+					entryIds: docs[docId].entryIds.filter(i => i !== id)
+				}
+			},
+			entries: otherEntries
+		};
+	},
+
+	DELETE_DOC({ docs, docIds, ...state }, { id }) {
+		const { [id]: doc, ...otherDocs } = docs;
+		return {
+			...state,
+			curDoc: null,
+			docs: otherDocs,
+			docIds: docIds.filter(i => i!== id)
+		};
 	}
 };
 
-function addDoc(title) {
-	return {
-		type: 'ADD_DOC',
-		id: Number(Math.random().toString().slice(2)).toString(36),
-		title
-	};
-}
-
-let store;
-
-function DocList() {
-	return h('ul', {}, [
-		h('li', {}, 'first'),
-		h('li', {}, 'second'),
-		h('li', {}, 'third')
-	]);
-}
-
-function DocView() {
-	return h('div', {}, 'DocView');
-}
+const store = createStore(
+	((state, action) => (reducers[action.type] || (s => s))(state, action)),
+	{ docIds: [], curDoc: null, entries: {}, docs: {} },
+	composeEnhancers(persistState(null, { key: 'jspad' }))
+);
 
 export default function App() {
-	return h(Provider, {}, h('div', {}, [
+	return h(Provider, { store }, h('div', {}, [
 		h(DocList),
 		h(DocView)
 	]));

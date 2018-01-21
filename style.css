@@ -6,3 +6,19 @@ html, body {
 h1 {
 	text-align: center;
 }
+
+.input, .result {
+	border: 1px solid lightgray;
+	padding: 5px;
+	margin-bottom: 5px;
+}
+
+.prompt {
+	width: 100px;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.input > textarea {
+	width: 80%;
+}
