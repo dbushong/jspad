@@ -17,13 +17,17 @@ function deleteEntry(id, docId) {
 	return { type: 'DELETE_ENTRY', id, docId };
 }
 
+function setInput(id, input) {
+	return { type: 'SET_INPUT', id, input };
+}
+
 function renderEntry({ docId, id, input, result }, dispatch) {
 	return h('div', { class: 'entry' }, [
-		h('div', { class: 'input' }, [
+		h('form', { class: 'input', onSubmit(e) { e.preventDefault(); } }, [
 			h('div', { class: 'prompt' }, [ 'In:' ]),
 			h('textarea', {
-				onChange() {
-					// setInput(docId, id, );
+				onChange({ target: { value } }) {
+					dispatch(setInput(id, value));
 				}
 			}, input),
 			' [',

@@ -55,6 +55,19 @@ const reducers = {
 		};
 	},
 
+	SET_INPUT({ entries, ...state }, { id, input }) {
+		return {
+			...state,
+			entries: {
+				...entries,
+				[id]: {
+					...entries[id],
+					input
+				}
+			}
+		};
+	},
+
 	DELETE_DOC({ docs, docIds, ...state }, { id }) {
 		const { [id]: doc, ...otherDocs } = docs;
 		return {
