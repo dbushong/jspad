@@ -21,25 +21,37 @@ function setInput(id, input) {
 	return { type: 'SET_INPUT', id, input };
 }
 
+function makeResult(id, input) {
+	// FIXME: isolate with something like:
+	// https://github.com/browserify/vm-browserify
+	let result;
+	try {
+		result = { value: eval(input) }; // eslint-disable-line no-eval
+	}
+	catch (err) {
+		result = { error: err.stack };
+	}
+	return { type: 'SET_RESULT', id, result };
+}
+
 function renderEntry({ docId, id, input, result }, dispatch) {
 	return h('div', { class: 'entry' }, [
-		h('form', { class: 'input', onSubmit(e) { e.preventDefault(); } }, [
-			h('div', { class: 'prompt' }, [ 'In:' ]),
-			h('textarea', {
-				onChange({ target: { value } }) {
-					dispatch(setInput(id, value));
-				}
-			}, input),
-			' [',
-			h('a', {
-				href: '#',
-				onClick(e) {
-					e.preventDefault();
-					dispatch(deleteEntry(id, docId));
-				}
-			}, 'x'),
-			']'
-		]),
+		h('div', { class: 'prompt' }, [ 'In:' ]),
+		h('textarea', {
+			onChange({ target: { value } }) {
+				dispatch(setInput(id, value));
+			},
+			value: input
+		}),
+		' [',
+		h('a', {
+			href: '#',
+			onClick(e) {
+				e.preventDefault();
+				dispatch(deleteEntry(id, docId));
+			}
+		}, 'x'),
+		']',
 		result && h('div', { class: 'result' }, [
 			h('div', { class: 'prompt' }, [ 'Out:' ]),
 			h(Result, { result })
@@ -47,26 +59,32 @@ function renderEntry({ docId, id, input, result }, dispatch) {
 	]);
 }
 
-function DocView({ doc, entries, dispatch }) {
-	if (!doc) return null;
+function DocView({ dispatch, entries, id: docId }) {
+	if (!docId) return null;
 	return h('div', {}, [
 		h('hr'),
-		doc.entryIds.map(id => [
-			renderEntry({ docId: doc.id, id, ...entries[id] }, dispatch),
+		entries.map(entry => [
+			renderEntry({ docId, ...entry }, dispatch),
 			h('hr')
 		]),
 		h('a', {
 			href: '#',
 			onClick(e) {
 				e.preventDefault();
-				dispatch(addEntry(doc.id));
+				dispatch(addEntry(docId));
 			}
 		}, 'Add Entry')
 	]);
 }
 
 function docProps({ docs, curDoc, entries }) {
-	return { doc: curDoc && { id: curDoc, ...docs[curDoc] }, entries };
+	if (!curDoc) return {};
+	const doc = docs[curDoc];
+	return {
+		id: curDoc,
+		entries: doc.entryIds.map(id => ({ id, ...entries[id] })),
+		...doc
+	};
 }
 
 export default connect(docProps)(DocView);

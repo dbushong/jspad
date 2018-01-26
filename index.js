@@ -2,6 +2,7 @@ import './style';
 import { createStore, compose } from 'redux';
 import { Provider } from 'preact-redux';
 import { h } from 'preact';
+import dp, { set, delete as dpDelete } from 'dot-prop-immutable-chain';
 import persistState from 'redux-localstorage';
 
 import DocList from './DocList';
@@ -10,72 +11,44 @@ import DocView from './DocView';
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
 const reducers = {
-	ADD_DOC({ docs, docIds, ...state }, { id, title }) {
-		return {
-			...state,
-			docs: { ...docs, [id]: { title, entryIds: [] } },
-			docIds: docIds.concat([id]),
-			curDoc: id
-		};
+	ADD_DOC(state, { id, title }) {
+		return dp(state)
+			.set('curDoc', id)
+			.set('docIds', dids => [...dids, id])
+			.set(`docs.${id}`, { title, entryIds: [] })
+			.value();
 	},
 
 	OPEN_DOC(state, { id }) {
-		return { ...state, curDoc: id };
+		return set(state, 'curDoc', id);
 	},
 
-	ADD_ENTRY({ docs, entries, ...state }, { docId, id }) {
-		return {
-			...state,
-			docs: {
-				...docs,
-				[docId]: {
-					...docs[docId],
-					entryIds: docs[docId].entryIds.concat([ id ])
-				}
-			},
-			entries: {
-				...entries,
-				[id]: { input: '' }
-			}
-		};
+	ADD_ENTRY(state, { docId, id }) {
+		return dp(state)
+			.set(`docs.${docId}.entryIds`, eids => [...eids, id])
+			.set(`entries.${id}`, { input: '' })
+			.value();
 	},
 
-	DELETE_ENTRY({ docs, entries, ...state }, { docId, id }) {
-		const { [id]: entry, ...otherEntries } = entries;
-		return {
-			...state,
-			docs: {
-				...docs,
-				[docId]: {
-					...docs[docId],
-					entryIds: docs[docId].entryIds.filter(i => i !== id)
-				}
-			},
-			entries: otherEntries
-		};
+	DELETE_ENTRY(state, { docId, id }) {
+		return dp(state)
+			.delete(`entries.${id}`)
+			.set(`docs.${docId}.entryIds`, eids => eids.filter(i => i !== id))
+			.value();
 	},
 
-	SET_INPUT({ entries, ...state }, { id, input }) {
-		return {
-			...state,
-			entries: {
-				...entries,
-				[id]: {
-					...entries[id],
-					input
-				}
-			}
-		};
+	SET_INPUT(state, { id, input }) {
+		return set(state, `entries.${id}.input`, input);
 	},
 
-	DELETE_DOC({ docs, docIds, ...state }, { id }) {
-		const { [id]: doc, ...otherDocs } = docs;
-		return {
-			...state,
-			curDoc: null,
-			docs: otherDocs,
-			docIds: docIds.filter(i => i!== id)
-		};
+	DELETE_DOC(state, { id }) {
+		const entryIds = state.docs[id].entryIds;
+		return dp(state)
+			.set('entries', ents => entryIds.reduce(dpDelete, ents))
+			.delete(`docs.${id}`)
+			.set('docIds', dids => dids.filter(i => i !== id))
+			.set('curDoc', null)
+			.value();
 	}
 };
 
@@ -86,7 +59,7 @@ const store = createStore(
 );
 
 export default function App() {
-	return h(Provider, { store }, h('div', {}, [
+	return h(Provider, { store }, h('div', { }, [
 		h(DocList),
 		h(DocView)
 	]));
