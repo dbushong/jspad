@@ -7,10 +7,28 @@ h1 {
 	text-align: center;
 }
 
-.input, .result {
+.result {
+	font-family: monospace;
+	white-space: pre;
+	padding: 5px;
+	background-color: #eee;
+}
+
+.result.stale {
+	background-color: #ccc;
+	color: #555;
+}
+
+.error {
+	background-color: #fcc;
+	color: #800;
+}
+
+.entry-section {
 	border: 1px solid lightgray;
 	padding: 5px;
 	margin-bottom: 5px;
+	border-radius: 3px;
 }
 
 .prompt {
@@ -21,4 +39,5 @@ h1 {
 
 .input textarea {
 	width: 80%;
+	font-family: monospace;
 }

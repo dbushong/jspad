@@ -1,8 +1,14 @@
 import { h } from 'preact';
 import { connect } from 'preact-redux';
 
-function Result({ result }) {
-	return h('div', {}, result);
+function classes(obj) {
+	return Object.keys(obj).filter(k => obj[k]).join(' ');
+}
+
+function Result({ result: { error, value, stale } }) {
+	return h('div', { class: classes({ result: 1, error, stale }) },
+		[error || JSON.stringify(value)]
+	);
 }
 
 function addEntry(docId) {
@@ -26,7 +32,7 @@ function makeResult(id, input) {
 	// https://github.com/browserify/vm-browserify
 	let result;
 	try {
-		result = { value: eval(input) }; // eslint-disable-line no-eval
+		result = { value: eval(`(${input})`) }; // eslint-disable-line no-eval
 	}
 	catch (err) {
 		result = { error: err.stack };
@@ -36,23 +42,33 @@ function makeResult(id, input) {
 
 function renderEntry({ docId, id, input, result }, dispatch) {
 	return h('div', { class: 'entry' }, [
-		h('div', { class: 'prompt' }, [ 'In:' ]),
-		h('textarea', {
-			onChange({ target: { value } }) {
-				dispatch(setInput(id, value));
-			},
-			value: input
-		}),
-		' [',
-		h('a', {
-			href: '#',
-			onClick(e) {
-				e.preventDefault();
-				dispatch(deleteEntry(id, docId));
-			}
-		}, 'x'),
-		']',
-		result && h('div', { class: 'result' }, [
+		h('div', { class: 'entry-section' }, [
+			h('div', { class: 'prompt' }, [ 'In:' ]),
+			h('textarea', {
+				onChange({ target: { value } }) {
+					dispatch(setInput(id, value));
+				},
+				onKeyPress({ key, ctrlKey, target: { value } }) {
+					if (key === 'Enter' && ctrlKey) {
+						dispatch(setInput(id, value));
+						dispatch(makeResult(id, value));
+						return false;
+					}
+					return true;
+				},
+				value: input
+			}),
+			' [',
+			h('a', {
+				href: '#',
+				onClick(e) {
+					e.preventDefault();
+					dispatch(deleteEntry(id, docId));
+				}
+			}, 'x'),
+			']'
+		]),
+		result && h('div', { class: 'entry-section' }, [
 			h('div', { class: 'prompt' }, [ 'Out:' ]),
 			h(Result, { result })
 		])

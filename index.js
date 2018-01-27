@@ -38,7 +38,14 @@ const reducers = {
 	},
 
 	SET_INPUT(state, { id, input }) {
-		return set(state, `entries.${id}.input`, input);
+		return dp(state)
+			.set(`entries.${id}.input`, input)
+			.set(`entries.${id}.result.stale`, true)
+			.value();
+	},
+
+	SET_RESULT(state, { id, result }) {
+		return set(state, `entries.${id}.result`, result);
 	},
 
 	DELETE_DOC(state, { id }) {
